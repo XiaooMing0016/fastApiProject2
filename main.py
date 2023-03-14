@@ -41,17 +41,23 @@ async def init_task(task_type: str, destination_type: str):
     else:
         raise HTTPException(status_code=404, detail=f"Task {task_type} not found")
     # 生成任务id
-    task_id = str(uuid.uuid4()[0:8])
+    task_id = str(uuid.uuid4())[0:8]
     # 创建任务
     if destination_type == 'master':
         for i in range(4):
-            response = requests.request('GET', f"{node_ip[i]}/task/init/{task_name}/{task_id}/{str(i)}")
-            logger.info(f"Created reconnaissance task {task_id} for {destination_type} node {str(i)}")
-            logger.info(f'url: {node_ip[i]}/task/init/{task_name}/{task_id}/{str(i)}, response: {response.text}')
+            try:
+                response = requests.request('GET', f"{node_ip[i]}/task/init/{task_name}/{task_id}/{str(i)}")
+                logger.info(f"Created reconnaissance task {task_id} for {destination_type} node {str(i)}")
+                logger.info(f'url: {node_ip[i]}/task/init/{task_name}/{task_id}/{str(i)}, response: {response.text}')
+            except Exception as e:
+                logger.error(f"Failed to create reconnaissance task {task_id} for {destination_type} node {str(i)}: {e}")
     elif destination_type == 'edge':
-        response = requests.request('GET', f"http://34.130.234.56/task/init/{destination_type}/{task_name}/{task_id}")
-        logger.info(f"Created reconnaissance task {task_id} for {destination_type}")
-        logger.info(logger.info(f'url: http://34.130.234.56/task/init/{task_name}/{task_id}, response: {response.text}'))
+        try:
+            response = requests.request('GET', f"http://34.130.234.56/task/init/{destination_type}/{task_name}/{task_id}")
+            logger.info(f"Created reconnaissance task {task_id} for {destination_type}")
+            logger.info(f'url: http://34.130.234.56/task/init/{task_name}/{task_id}, response: {response.text}')
+        except Exception as e:
+            logger.error(f"Failed to create reconnaissance task {task_id} for {destination_type}: {e}")
     # 将任务id和任务名称和状态和目的地和创建时间存入tasks字典
     tasks[task_id] = {"task_name": task_name, "status": "created", "destination_type": destination_type,
                       "creat_time": time.time()}
@@ -91,7 +97,7 @@ async def receive_image(task_id: str, image: UploadFile = File(...)):
 async def get_task_status(task_id: str):
     # 如果任务id在tasks字典中，则返回任务状态
     if task_id in tasks:
-        return {"status": tasks}
+        return {"status": tasks[task_id]}
     # 否则返回任务不存在
     else:
         raise HTTPException(status_code=404, detail=f"Task {task_id} not found")
@@ -101,25 +107,39 @@ async def get_task_status(task_id: str):
 @app.get("/task/stop/{task_id}")
 async def stop_task(task_id: str):
     # 如果任务id在tasks字典中，则停止任务
-    if task_id in tasks:
-        tasks[task_id]["status"] = "stopped"
-        # 记录任务结束时间
-        tasks[task_id]["end_time"] = time.time()
-        if tasks[task_id]["destination_type"] == 'master':
-            for node in node_ip:
+    if task_id not in tasks:
+        raise HTTPException(status_code=404, detail=f"Task {task_id} not found")
+
+    if tasks[task_id]["status"] == "stopped":
+        raise HTTPException(status_code=400, detail=f"Task {task_id} already stopped")
+
+    tasks[task_id]["status"] = "stopped"
+    # 记录任务结束时间
+    tasks[task_id]["end_time"] = time.time()
+
+    if tasks[task_id]["destination_type"] == 'master':
+        for node in node_ip:
+            try:
                 response = requests.request('GET', f"{node}/task/stop/{task_id}")
                 logger.info(f"Stopped task {task_id} for node {node}")
                 logger.info(f'url: {node}/task/stop/{task_id}, response: {response.text}')
-        elif tasks[task_id]["destination_type"] == 'edge':
+            except requests.exceptions.RequestException as e:
+                logger.error(f"Failed to stop task {task_id} for node {node}: {e}")
+    elif tasks[task_id]["destination_type"] == 'edge':
+        try:
             response = requests.request('GET', f"http://34.130.234.56/task/stop/{task_id}")
             logger.info(f"Stopped task {task_id} for edge")
             logger.info(f'url: http://34.130.234.56/task/stop/{task_id}, response: {response.text}')
-        # 启用协程删除任务相关图片
-        asyncio.create_task(delete_image(task_id))
-        # 详细记录日志
-        logger.info(f"Stopped task {task_id}")
-        # 返回任务停止状态
-        return {"status": "stopped"}
+        except requests.exceptions.RequestException as e:
+            logger.error(f"Failed to stop task {task_id} for edge: {e}")
+
+    # 启用协程删除任务相关图片
+    asyncio.create_task(delete_image(task_id))
+
+    # 详细记录日志
+    logger.info(f"Stopped task {task_id}")
+    # 返回任务停止状态
+    return {"status": "stopped", "task_id": task_id}
 
 
 async def delete_image(task_id):
