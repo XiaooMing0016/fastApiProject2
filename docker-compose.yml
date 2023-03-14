@@ -1,0 +1,11 @@
+version: '3'
+services:
+  task:
+    build: .
+    image: master
+    container_name: master
+    ports:
+      - "80:8080"
+    volumes:
+      - ./image:/app/image
+    network_mode: "host"
