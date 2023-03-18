@@ -70,7 +70,7 @@ async def init_task(task_type: str, destination_type: str, task_name: str, prior
     if destination_type == 'master':
         for i in range(4):
             try:
-                response = requests.request('GET', f"{_node_ip[i]}/task/init/{task_type_name}/{str(i)}/"
+                response = requests.request('GET', f"{_node_ip[i]}/task/init/{task_type_name}/{task_id}/{str(i)}/"
                                                    f"{task_name}/{priority}")
                 if response.status_code == 200:
                     logger.info(
@@ -193,6 +193,47 @@ async def stop_task(task_id: str):
                         logger.warning(f'Stop task {task_id} is failed')
                 except Exception as e:
                     logger.error(f'Stop task {task_id} is error, error: {e}')
+    else:
+        return {'message': 'task_id does not exist'}
+
+
+# 完成任务
+@app.get("/task/finish/{task_id}/{node_id}")
+async def finish_task(task_id: str, node_id: str):
+    logger.info(f"Received finish task {task_id} from node {node_id}")
+    if task_id in _tasks:
+        _tasks[task_id][node_id]['task_status'] = 'finished'
+        _tasks[task_id][node_id]['task_end_time'] = (
+            time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()))
+        with open('tasks.json', 'w') as f:
+            json.dump(_tasks, f)
+    else:
+        return {'message': 'task_id does not exist'}
+    # 如果所有节点都完成任务，则完成任务
+    if _tasks[task_id]['edge']['task_status'] == 'finished' and _tasks[task_id]['0']['task_status'] == 'finished' \
+            and _tasks[task_id]['1']['task_status'] == 'finished' and _tasks[task_id]['2']['task_status'] == 'finished' \
+            and _tasks[task_id]['3']['task_status'] == 'finished':
+        _tasks[task_id]['task_status'] = 'finished'
+        _tasks[task_id]['task_end_time'] = (time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()))
+        with open('tasks.json', 'w') as f:
+            json.dump(_tasks, f)
+        logger.info(f"Finish task {task_id} is successful")
+        return {"task_finish": "success"}
+    else:
+        return {"message": f"Task {task_id} node {node_id} is finished, waiting for other nodes to finish"}
+
+
+# 边缘节点完成任务
+@app.get("/task/finish/{task_id}")
+async def finish_task(task_id: str):
+    logger.info(f"Received finish task {task_id} from edge node")
+    if task_id in _tasks:
+        _tasks[task_id]['edge']['task_status'] = 'finished'
+        _tasks[task_id]['edge']['task_end_time'] = (
+            time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()))
+        with open('tasks.json', 'w') as f:
+            json.dump(_tasks, f)
+        logger.info(f"Finish task {task_id} is successful")
     else:
         return {'message': 'task_id does not exist'}
 
