@@ -77,7 +77,7 @@ async def init_task(task_type: str, destination_type: str, task_name: str, prior
                         f"Created {task_type_name} task {task_name}:{task_id} for {destination_type} node {str(i)} is "
                         f"successful, priority: {priority}")
                     _tasks[task_id][str(i)] = {}
-                    _tasks[task_id][str[i]] = {"task_id": task_id, "task_node": str[i],
+                    _tasks[task_id][str(i)] = {"task_id": task_id, "task_node": str(i),
                                                "task_name": task_name, "task_type": task_type,
                                                "task_type_name": task_type_name, "task_priority": priority,
                                                "task_destination": destination_type, "task_status": "created",
