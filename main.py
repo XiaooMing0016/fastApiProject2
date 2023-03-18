@@ -4,7 +4,7 @@ import uuid
 import logging
 from typing import Dict
 import requests
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 import uvicorn
 
 app = FastAPI()
@@ -115,24 +115,24 @@ async def init_task(task_type: str, destination_type: str, task_name: str, prior
 
 # 接受数据并处理
 @app.get("/task/process/{task_id}/{node_id}/{image_num}/{node_num}/{count}")
-async def task_process(task_id: str, node_id: str, image_num: str, node_num: str, count: str):
+async def task_process(request: Request, task_id: str, node_id: str, image_num: str, node_num: str, count: str):
     # 如果任务id在tasks字典中，则更新任务状态
     if task_id in _tasks:
         _tasks[task_id][node_id]['task_status'] = 'processing'
         logger.info(f"Received {image_num} data from {node_id} node, task id: {task_id}")
         logger.info(f"Start to process data, task id: {task_id}, task_node: {node_id}")
-        if node_id == 'edge':
+        if request.client.host == '34.130.234.56':
             # 模拟处理数据,0.5秒
             time.sleep(0.5)
-            _tasks[task_id][node_id]['task_progress'] = int(image_num) / (int(node_num)*int(count))
-            logger.info(f"data processing, task id: {task_id}, task_node: {node_id}, "
-                        f"progress: {str(_tasks[task_id][node_id]['task_progress']*100)[:4]+'%'}")
+            # _tasks[task_id][node_id]['task_progress'] = int(image_num) / (int(node_num)*int(count))
+            logger.info(f"data processing, task id: {task_id}, task_node: {node_id}),0.5s")
+            # f"progress: {str(_tasks[task_id][node_id]['task_progress']*100)[:4]+'%'}")
         else:
             # 模拟处理数据,1秒
             time.sleep(1)
             _tasks[task_id][node_id]['task_progress'] = int(image_num) / int(count)
-        logger.info(f"End to process data, task id: {task_id}, task_node: {node_id}, "
-                    f"progress: {str(_tasks[task_id][node_id]['task_progress']*100)[:4]+'%'}")
+        logger.info(f"End to process data, task id: {task_id}, task_node: {node_id},1s")
+        # f"progress: {str(_tasks[task_id][node_id]['task_progress'] * 100)[:4] + '%'}")
         try:
             # 将tasks字典写入tasks.json文件
             with open('tasks.json', 'w') as f:
