@@ -114,7 +114,7 @@ async def init_task(task_type: str, destination_type: str, task_name: str, prior
 
 
 # 接受数据并处理
-@app.get("/task/process/{task_id}/{node_id}/{image_num}/{node_num}//{count}")
+@app.get("/task/process/{task_id}/{node_id}/{image_num}/{node_num}/{count}")
 async def task_process(task_id: str, node_id: str, image_num: str, node_num: str, count: str):
     # 如果任务id在tasks字典中，则更新任务状态
     if task_id in _tasks:
