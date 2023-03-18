@@ -1,18 +1,34 @@
-import asyncio
-import os
+import json
 import time
 import uuid
 import logging
 from typing import Dict
 import requests
-from fastapi import FastAPI, HTTPException, UploadFile, File
+from fastapi import FastAPI, HTTPException
 import uvicorn
 
 app = FastAPI()
 
 # 存储所有任务状态的字典
-tasks: Dict[str, Dict] = {}
-node_ip = {
+_tasks: Dict[str, Dict] = {
+    'task_id': {
+        'task_node': {
+            'task_id': 'task_id',  # 任务id
+            'task_node': 'task_node',  # 任务节点
+            'task_name': 'task_name',  # 任务名称
+            'task_type': 'task_type',  # 任务类型
+            'task_type_name': 'task_type_name',  # 任务类型名称
+            'task_priority': 'task_priority',  # 任务优先级
+            'task_destination': 'task_destination',  # 任务目的地
+            'task_status': 'task_status',  # 任务状态
+            'task_progress': 'task_progress',  # 任务进度
+            'task_start_time': 'task_start_time',  # 任务开始时间
+            'task_end_time': 'task_end_time',  # 任务结束时间
+        }
+    }
+}
+
+_node_ip = {
     '0': 'http://34.135.240.45',
     '1': 'http://34.170.128.54',
     '2': 'http://34.30.67.124',
@@ -26,18 +42,26 @@ logger = logging.getLogger(__name__)
 
 @app.get("/")
 async def root():
+    try:
+        # 从json文件中读取更新task
+        with open('tasks.json', 'r') as f:
+            file_tasks = json.load(f)
+        for task_id in file_tasks:
+            _tasks[task_id] = file_tasks[task_id]
+    except Exception as e:
+        logger.warning(f"Failed to read tasks.json: {e}")
     return {"message": "Hello World"}
 
 
-# 创建侦查任务
-@app.get("/task/init/{task_type}/{destination_type}")
-async def init_task(task_type: str, destination_type: str):
+# 创建任务
+@app.get("/task/init/{task_type}/{destination_type}/{task_name}/{priority}")
+async def init_task(task_type: str, destination_type: str, task_name: str, priority: str):
     destination = ''
-    task_name = ''
+    task_type_name = ''
     if task_type == '1':
-        task_name = 'reconnaissance'
+        task_type_name = 'reconnaissance'
     elif task_type == '2':
-        task_name = 'track'
+        task_type_name = 'track'
     else:
         raise HTTPException(status_code=404, detail=f"Task {task_type} not found")
     # 生成任务id
@@ -46,110 +70,131 @@ async def init_task(task_type: str, destination_type: str):
     if destination_type == 'master':
         for i in range(4):
             try:
-                response = requests.request('GET', f"{node_ip[i]}/task/init/{task_name}/{task_id}/{str(i)}")
-                logger.info(f"Created reconnaissance task {task_id} for {destination_type} node {str(i)}")
-                logger.info(f'url: {node_ip[i]}/task/init/{task_name}/{task_id}/{str(i)}, response: {response.text}')
+                response = requests.request('GET', f"{_node_ip[i]}/task/init/{task_type_name}/{str(i)}/"
+                                                   f"{task_name}/{priority}")
+                if response.status_code == 200:
+                    logger.info(
+                        f"Created {task_type_name} task {task_name}:{task_id} for {destination_type} node {str(i)} is "
+                        f"successful, priority: {priority}")
+                    _tasks[task_id][str[i]] = {"task_id": task_id, "task_node": str[i],
+                                               "task_name": task_name, "task_type": task_type,
+                                               "task_type_name": task_type_name, "task_priority": priority,
+                                               "task_destination": destination_type, "task_status": "created",
+                                               "creat_time": (
+                                                   time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()))}
+
+                    # 将tasks字典写入tasks.json文件
+                    with open('tasks.json', 'w') as f:
+                        json.dump(_tasks, f)
+                else:
+                    logger.warning(
+                        f"Created {task_type_name} task {task_name}:{task_id} for {destination_type} node {str(i)} "
+                        f"is failed, priority: {priority}, response: {response.text}")
             except Exception as e:
-                logger.error(f"Failed to create reconnaissance task {task_id} for {destination_type} node {str(i)}: {e}")
+                logger.error(
+                    f"Created {task_type_name} task {task_name}:{task_id} for {destination_type} node {str(i)} "
+                    f"is error, priority: {priority}, error: {e}")
     elif destination_type == 'edge':
         try:
-            response = requests.request('GET', f"http://34.130.234.56/task/init/{destination_type}/{task_name}/{task_id}")
-            logger.info(f"Created reconnaissance task {task_id} for {destination_type}")
-            logger.info(f'url: http://34.130.234.56/task/init/{task_name}/{task_id}, response: {response.text}')
+            logger.info(
+                f"Start init task, task_id: {task_id}, task_name: {task_name}, task_type_name: {task_type_name}, "
+                f"priority: {priority}")
+            response = requests.request('GET', f"http://34.130.234.56/task/init/{task_type_name}/{task_id}/"
+                                               f"{task_name}/{priority}")
+            if response.status_code == 200:
+                logger.info(
+                    f"Created {task_type_name} task {task_name}:{task_id} for {destination_type} node Edge is "
+                    f"successful, priority: {priority}")
+                _tasks[task_id]['edge'] = {"task_id": task_id, "task_node": 'Edge',
+                                           "task_name": task_name, "task_type": task_type,
+                                           "task_type_name": task_type_name, "task_priority": priority,
+                                           "task_destination": destination_type, "task_status": "created",
+                                           "creat_time": (time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()))}
+                # 将tasks字典写入tasks.json文件
+                with open('tasks.json', 'w') as f:
+                    json.dump(_tasks, f)
+            else:
+                logger.warning(
+                    f"Created {task_type_name} task {task_name}:{task_id} for {destination_type} node Edge"
+                    f"is failed, priority: {priority}, response: {response.text}")
+                return {"task_id": task_id, "task_name": task_name, "task_type_name": task_type_name,
+                        "destination_type": destination_type, "status": "failed", "response": response.text}
         except Exception as e:
-            logger.error(f"Failed to create reconnaissance task {task_id} for {destination_type}: {e}")
-    # 将任务id和任务名称和状态和目的地和创建时间存入tasks字典
-    tasks[task_id] = {"task_name": task_name, "status": "created", "destination_type": destination_type,
-                      "creat_time": time.time()}
-    # 详细记录日志
-    logger.info(
-        f"Created {task_name} task {task_name}:{task_id} for {destination_type}:{destination}, creat_time:{tasks[task_id]['creat_time']}")
-    # 返回任务id和任务创建状态
-    return {"task_id": task_id, "task_name": task_name, "destination_type": destination_type, "status": "init"}
+            logger.error(
+                f"Created {task_type_name} task {task_name}:{task_id} for {destination_type} node Edge "
+                f"is error, priority: {priority}, error: {e}")
+    return {"task_id": task_id, "task_name": task_name, "task_type_name": task_type_name,
+            "destination_type": destination_type, "status": "created"}
 
 
-# 接受图片并储存，并记录图片数量
-@app.post("/image/{task_id}")
-async def receive_image(task_id: str, image: UploadFile = File(...)):
-    # 保存图片到image文件夹
-    with open(f"image/{task_id}_image.jpg", "wb") as buffer:
-        buffer.write(await image.read())
-    # 记录任务获取图片数量
-    if "image_count" not in tasks[task_id]:
-        tasks[task_id]["image_count"] = 1
-    else:
-        tasks[task_id]["image_count"] += 1
-    # 如果图片数量达到1440，则任务结束，并启用协程删除任务相关图片
-    if tasks[task_id]["image_count"] == 1440:
-        tasks[task_id]["status"] = "finished"
-        # 记录任务结束时间
-        tasks[task_id]["end_time"] = time.time()
-        asyncio.create_task(delete_image(task_id))
-
-    # 详细记录日志
-    logger.info(f"Received image {task_id}_image.jpg for task {task_id}, image_count:{tasks[task_id]['image_count']}")
-    # 返回成功消息
-    return {"message": f"Image {task_id}_image.jpg received"}
+# 接受数据并处理
+@app.get("/task/process/{task_id}/{node_id}/{image_num}")
+async def task_process(task_id: str, node_id: str, image_num: int):
+    # 如果任务id在tasks字典中，则更新任务状态
+    if task_id in _tasks:
+        _tasks[task_id][node_id]['task_status'] = 'processing'
+        logger.info(f"Received {image_num} data from {node_id} node, task id: {task_id}, t"
+                    f"ask_process:{_tasks[task_id][node_id]['process']}")
+        logger.info(f"Start to process data, task id: {task_id}, task_node: {node_id}")
+        if node_id == 'edge':
+            # 模拟处理数据,0.5秒
+            time.sleep(0.5)
+            _tasks[task_id][node_id]['process'] = int(image_num) / 500
+        else:
+            # 模拟处理数据,1秒
+            time.sleep(1)
+            _tasks[task_id][node_id]['process'] = int(image_num) / 125
+        logger.info(f"End to process data, task id: {task_id}, task_node: {node_id}")
+        try:
+            # 将tasks字典写入tasks.json文件
+            with open('tasks.json', 'w') as f:
+                json.dump(_tasks, f)
+        except Exception as e:
+            logger.error(f'Update tasks error, {e}')
+    return {"task_process": "success"}
 
 
 # 查询任务状态
 @app.get("/task/status/{task_id}")
 async def get_task_status(task_id: str):
-    # 如果任务id在tasks字典中，则返回任务状态
-    if task_id in tasks:
-        return {"status": tasks[task_id]}
-    # 否则返回任务不存在
+    if task_id in _tasks:
+        return {_tasks[task_id]}
     else:
-        raise HTTPException(status_code=404, detail=f"Task {task_id} not found")
+        return {'message': 'task_id does not exist'}
 
 
 # 停止任务
-@app.get("/task/stop/{task_id}")
+@app.get("/task/end/{task_id}")
 async def stop_task(task_id: str):
-    # 如果任务id在tasks字典中，则停止任务
-    if task_id not in tasks:
-        raise HTTPException(status_code=404, detail=f"Task {task_id} not found")
-
-    if tasks[task_id]["status"] == "stopped":
-        raise HTTPException(status_code=400, detail=f"Task {task_id} already stopped")
-
-    tasks[task_id]["status"] = "stopped"
-    # 记录任务结束时间
-    tasks[task_id]["end_time"] = time.time()
-
-    if tasks[task_id]["destination_type"] == 'master':
-        for node in node_ip:
+    if task_id in _tasks:
+        if _tasks[task_id]['edge']:
             try:
-                response = requests.request('GET', f"{node}/task/stop/{task_id}")
-                logger.info(f"Stopped task {task_id} for node {node}")
-                logger.info(f'url: {node}/task/stop/{task_id}, response: {response.text}')
-            except requests.exceptions.RequestException as e:
-                logger.error(f"Failed to stop task {task_id} for node {node}: {e}")
-    elif tasks[task_id]["destination_type"] == 'edge':
-        try:
-            response = requests.request('GET', f"http://34.130.234.56/task/stop/{task_id}")
-            logger.info(f"Stopped task {task_id} for edge")
-            logger.info(f'url: http://34.130.234.56/task/stop/{task_id}, response: {response.text}')
-        except requests.exceptions.RequestException as e:
-            logger.error(f"Failed to stop task {task_id} for edge: {e}")
-
-    # 启用协程删除任务相关图片
-    asyncio.create_task(delete_image(task_id))
-
-    # 详细记录日志
-    logger.info(f"Stopped task {task_id}")
-    # 返回任务停止状态
-    return {"status": "stopped", "task_id": task_id}
-
-
-async def delete_image(task_id):
-    # 删除图片，如果名称包含task_id
-    for file in os.listdir("image"):
-        if task_id in file:
-            # 删除图片
-            os.remove(f"image/{file}")
-            # 详细记录日志
-            logger.info(f"Deleted image {file}")
+                response = requests.request('GET', f"http://34.130.234.56/task/end/{task_id}")
+                if response.status_code == 200:
+                    _tasks[task_id]['edge']['task_status'] = 'end'
+                    _tasks[task_id]['edge']['task_end_time'] = (time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()))
+                    logger.info(f"Stop task {task_id} is successful")
+                    # 将tasks字典写入tasks.json文件
+                    with open('tasks.json', 'w') as f:
+                        json.dump(_tasks, f)
+                else:
+                    logger.warning(f'Stop task {task_id} is failed')
+            except Exception as e:
+                logger.error(f'Stop task {task_id} is error, error: {e}')
+        else:
+            for i in range(4):
+                try:
+                    response = requests.request('GET', f"{_node_ip[i]}/task/end/{task_id}")
+                    if response.status_code == 200:
+                        _tasks[task_id][str(i)]['task_status'] = 'end'
+                        _tasks[task_id][str(i)]['task_end_time'] = (
+                            time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()))
+                    else:
+                        logger.warning(f'Stop task {task_id} is failed')
+                except Exception as e:
+                    logger.error(f'Stop task {task_id} is error, error: {e}')
+    else:
+        return {'message': 'task_id does not exist'}
 
 
 if __name__ == "__main__":
