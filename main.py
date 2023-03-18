@@ -76,7 +76,7 @@ async def init_task(task_type: str, destination_type: str, task_name: str, prior
                     logger.info(
                         f"Created {task_type_name} task {task_name}:{task_id} for {destination_type} node {str(i)} is "
                         f"successful, priority: {priority}")
-                    _tasks[task_id][str(i)] = {}
+                    _tasks[task_id] = {}
                     _tasks[task_id][str(i)] = {"task_id": task_id, "task_node": str(i),
                                                "task_name": task_name, "task_type": task_type,
                                                "task_type_name": task_type_name, "task_priority": priority,
@@ -90,7 +90,7 @@ async def init_task(task_type: str, destination_type: str, task_name: str, prior
                 else:
                     logger.warning(
                         f"Created {task_type_name} task {task_name}:{task_id} for {destination_type} node {str(i)} "
-                        f"is failed, priority: {priority}, response: {response.text}")
+                        f"is failed, priority: {priority}, response: ")
             except Exception as e:
                 logger.error(
                     f"Created {task_type_name} task {task_name}:{task_id} for {destination_type} node {str(i)} "
@@ -106,8 +106,8 @@ async def init_task(task_type: str, destination_type: str, task_name: str, prior
                 logger.info(
                     f"Created {task_type_name} task {task_name}:{task_id} for {destination_type} node Edge is "
                     f"successful, priority: {priority}")
-                _tasks[task_id]['edge'] = {}
-                _tasks[task_id]['edge'] = {"task_id": task_id, "task_node": 'Edge',
+                _tasks[task_id] = {}
+                _tasks[task_id]['edge'] = {"task_id": task_id, "task_node": 'edge',
                                            "task_name": task_name, "task_type": task_type,
                                            "task_type_name": task_type_name, "task_priority": priority,
                                            "task_destination": destination_type, "task_status": "created",
