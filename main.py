@@ -10,23 +10,7 @@ import uvicorn
 app = FastAPI()
 
 # 存储所有任务状态的字典
-_tasks: Dict[str, Dict] = {
-    'task_id': {
-        'task_node': {
-            'task_id': 'task_id',  # 任务id
-            'task_node': 'task_node',  # 任务节点
-            'task_name': 'task_name',  # 任务名称
-            'task_type': 'task_type',  # 任务类型
-            'task_type_name': 'task_type_name',  # 任务类型名称
-            'task_priority': 'task_priority',  # 任务优先级
-            'task_destination': 'task_destination',  # 任务目的地
-            'task_status': 'task_status',  # 任务状态
-            'task_progress': 'task_progress',  # 任务进度
-            'task_start_time': 'task_start_time',  # 任务开始时间
-            'task_end_time': 'task_end_time',  # 任务结束时间
-        }
-    }
-}
+_tasks: Dict[str, Dict] = {}
 
 _node_ip = {
     '0': 'http://34.135.240.45',
@@ -135,24 +119,30 @@ async def task_process(task_id: str, node_id: str, image_num: int):
     # 如果任务id在tasks字典中，则更新任务状态
     if task_id in _tasks:
         _tasks[task_id][node_id]['task_status'] = 'processing'
-        logger.info(f"Received {image_num} data from {node_id} node, task id: {task_id}, t"
-                    f"ask_process:{_tasks[task_id][node_id]['task_progress']}")
+        logger.info(f"Received {image_num} data from {node_id} node, task id: {task_id}")
         logger.info(f"Start to process data, task id: {task_id}, task_node: {node_id}")
         if node_id == 'edge':
             # 模拟处理数据,0.5秒
             time.sleep(0.5)
             _tasks[task_id][node_id]['task_progress'] = int(image_num) / 500
+            logger.info(f"data processing, task id: {task_id}, task_node: {node_id}, "
+                        f"progress: {_tasks[task_id][node_id]['task_progress']}")
         else:
             # 模拟处理数据,1秒
             time.sleep(1)
             _tasks[task_id][node_id]['task_progress'] = int(image_num) / 125
-        logger.info(f"End to process data, task id: {task_id}, task_node: {node_id}")
+        logger.info(f"End to process data, task id: {task_id}, task_node: {node_id}, "
+                    f"progress: {_tasks[task_id][node_id]['task_progress']}")
         try:
             # 将tasks字典写入tasks.json文件
             with open('tasks.json', 'w') as f:
                 json.dump(_tasks, f)
         except Exception as e:
             logger.error(f'Update tasks error, {e}')
+        # 如果所有任务都完成，则更新任务状态
+        if all(_tasks[task_id][node_id]['task_status'] == 'finished' for node_id in _tasks[task_id]):
+            logger.info(f"All nodes have finished processing data, task id: {task_id}")
+            _tasks[task_id]['task_status'] = 'finished'
     return {"task_process": "success"}
 
 
