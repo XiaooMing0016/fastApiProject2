@@ -126,13 +126,13 @@ async def task_process(task_id: str, node_id: str, image_num: str, node_num: str
             time.sleep(0.5)
             _tasks[task_id][node_id]['task_progress'] = int(image_num) / (int(node_num)*int(count))
             logger.info(f"data processing, task id: {task_id}, task_node: {node_id}, "
-                        f"progress: {_tasks[task_id][node_id]['task_progress']}")
+                        f"progress: {str(_tasks[task_id][node_id]['task_progress']*100)[:3]+'%'}")
         else:
             # 模拟处理数据,1秒
             time.sleep(1)
             _tasks[task_id][node_id]['task_progress'] = int(image_num) / int(count)
         logger.info(f"End to process data, task id: {task_id}, task_node: {node_id}, "
-                    f"progress: {_tasks[task_id][node_id]['task_progress']}")
+                    f"progress: {str(_tasks[task_id][node_id]['task_progress']*100)[:3]+'%'}")
         try:
             # 将tasks字典写入tasks.json文件
             with open('tasks.json', 'w') as f:
