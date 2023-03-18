@@ -124,7 +124,7 @@ async def task_process(task_id: str, node_id: str, image_num: str, node_num: str
         if node_id == 'edge':
             # 模拟处理数据,0.5秒
             time.sleep(0.5)
-            _tasks[task_id][node_id]['task_progress'] = int(image_num) / int(node_num)*int(count)
+            _tasks[task_id][node_id]['task_progress'] = int(image_num) / (int(node_num)*int(count))
             logger.info(f"data processing, task id: {task_id}, task_node: {node_id}, "
                         f"progress: {_tasks[task_id][node_id]['task_progress']}")
         else:
