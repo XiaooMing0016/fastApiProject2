@@ -38,8 +38,8 @@ async def root():
 
 
 # 创建任务
-@app.get("/task/init/{task_type}/{destination_type}/{task_name}/{priority}")
-async def init_task(task_type: str, destination_type: str, task_name: str, priority: str):
+@app.get("/task/init/{task_type}/{destination_type}/{task_name}/{priority}/{count}")
+async def init_task(task_type: str, destination_type: str, task_name: str, priority: str, count: str):
     destination = ''
     task_type_name = ''
     if task_type == '1':
@@ -55,7 +55,7 @@ async def init_task(task_type: str, destination_type: str, task_name: str, prior
         for i in range(4):
             try:
                 response = requests.request('GET', f"{_node_ip[i]}/task/init/{task_type_name}/{task_id}/{str(i)}/"
-                                                   f"{task_name}/{priority}")
+                                                   f"{task_name}/{priority}/{count}")
                 if response.status_code == 200:
                     logger.info(
                         f"Created {task_type_name} task {task_name}:{task_id} for {destination_type} node {str(i)} is "
@@ -85,7 +85,7 @@ async def init_task(task_type: str, destination_type: str, task_name: str, prior
                 f"Start init task, task_id: {task_id}, task_name: {task_name}, task_type_name: {task_type_name}, "
                 f"priority: {priority}")
             response = requests.request('GET', f"http://34.130.234.56/task/init/{task_type_name}/{task_id}/"
-                                               f"{task_name}/{priority}")
+                                               f"{task_name}/{priority}/{count}")
             if response.status_code == 200:
                 logger.info(
                     f"Created {task_type_name} task {task_name}:{task_id} for {destination_type} node Edge is "
