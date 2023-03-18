@@ -150,7 +150,7 @@ async def task_process(task_id: str, node_id: str, image_num: int, node_num: int
 @app.get("/task/status/{task_id}")
 async def get_task_status(task_id: str):
     if task_id in _tasks:
-        return {_tasks[task_id]}
+        return {json.dumps(_tasks[task_id], indent=4, ensure_ascii=False)}
     else:
         return {'message': 'task_id does not exist'}
 
