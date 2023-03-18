@@ -136,16 +136,16 @@ async def task_process(task_id: str, node_id: str, image_num: int):
     if task_id in _tasks:
         _tasks[task_id][node_id]['task_status'] = 'processing'
         logger.info(f"Received {image_num} data from {node_id} node, task id: {task_id}, t"
-                    f"ask_process:{_tasks[task_id][node_id]['process']}")
+                    f"ask_process:{_tasks[task_id][node_id]['task_progress']}")
         logger.info(f"Start to process data, task id: {task_id}, task_node: {node_id}")
         if node_id == 'edge':
             # 模拟处理数据,0.5秒
             time.sleep(0.5)
-            _tasks[task_id][node_id]['process'] = int(image_num) / 500
+            _tasks[task_id][node_id]['task_progress'] = int(image_num) / 500
         else:
             # 模拟处理数据,1秒
             time.sleep(1)
-            _tasks[task_id][node_id]['process'] = int(image_num) / 125
+            _tasks[task_id][node_id]['task_progress'] = int(image_num) / 125
         logger.info(f"End to process data, task id: {task_id}, task_node: {node_id}")
         try:
             # 将tasks字典写入tasks.json文件
