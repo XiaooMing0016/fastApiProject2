@@ -114,8 +114,8 @@ async def init_task(task_type: str, destination_type: str, task_name: str, prior
 
 
 # 接受数据并处理
-@app.get("/task/process/{task_id}/{node_id}/{image_num}/{node_num}")
-async def task_process(task_id: str, node_id: str, image_num: int, node_num: int):
+@app.get("/task/process/{task_id}/{node_id}/{image_num}/{node_num}//{count}")
+async def task_process(task_id: str, node_id: str, image_num: str, node_num: str, count: str):
     # 如果任务id在tasks字典中，则更新任务状态
     if task_id in _tasks:
         _tasks[task_id][node_id]['task_status'] = 'processing'
@@ -124,13 +124,13 @@ async def task_process(task_id: str, node_id: str, image_num: int, node_num: int
         if node_id == 'edge':
             # 模拟处理数据,0.5秒
             time.sleep(0.5)
-            _tasks[task_id][node_id]['task_progress'] = int(image_num) / node_num*125
+            _tasks[task_id][node_id]['task_progress'] = int(image_num) / int(node_num)*int(count)
             logger.info(f"data processing, task id: {task_id}, task_node: {node_id}, "
                         f"progress: {_tasks[task_id][node_id]['task_progress']}")
         else:
             # 模拟处理数据,1秒
             time.sleep(1)
-            _tasks[task_id][node_id]['task_progress'] = int(image_num) / 125
+            _tasks[task_id][node_id]['task_progress'] = int(image_num) / int(count)
         logger.info(f"End to process data, task id: {task_id}, task_node: {node_id}, "
                     f"progress: {_tasks[task_id][node_id]['task_progress']}")
         try:
