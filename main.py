@@ -76,9 +76,9 @@ async def init_task(task_type: str, destination_type: str, task_name: str, prior
                         f"Created {task_type_name} task {task_name}:{task_id} for {destination_type} node {str(i)} "
                         f"is failed, priority: {priority}, response: ")
             except Exception as e:
-                logger.info(
+                logger.error(
                     f"Created {task_type_name} task {task_name}:{task_id} for {destination_type} node {str(i)} "
-                    f"is successful, priority: {priority}, {e}")
+                    f"is error, priority: {priority}, error:{e}")
     elif destination_type == 'edge':
         try:
             logger.info(
