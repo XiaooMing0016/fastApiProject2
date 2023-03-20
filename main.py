@@ -123,6 +123,7 @@ async def task_process(request: Request, task_id: str, node_id: str, image_num: 
 async def task_process(request: Request, task_id: str, node_id: str, image_num: str, node_num: str, count: str):
     # 如果任务id在tasks字典中，则更新任务状态
     if task_id in _tasks:
+        _tasks[task_id][node_id] = {}
         _tasks[task_id][node_id]['task_status'] = 'processing'
         logger.info(f"Received {image_num} data from {node_id} node, task id: {task_id}")
         logger.info(f"Start to process data, task id: {task_id}, task_node: {node_id}")
