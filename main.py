@@ -207,7 +207,7 @@ async def finish_task(task_id: str, node_id: str):
             json.dump(_tasks, f)
     else:
         return {'message': 'task_id does not exist'}
-    if _tasks[task_id]['edge']:
+    if 'edge' in _tasks[task_id]:
         if _tasks[task_id]['edge']['task_status'] == 'finished' and _tasks[task_id]['0'][
             'task_status'] == 'finished' \
                 and _tasks[task_id]['1']['task_status'] == 'finished' and _tasks[task_id]['2'][
