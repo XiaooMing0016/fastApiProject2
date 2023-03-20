@@ -207,16 +207,27 @@ async def finish_task(task_id: str, node_id: str):
             json.dump(_tasks, f)
     else:
         return {'message': 'task_id does not exist'}
-    # 如果所有节点都完成任务，则完成任务
-    if _tasks[task_id]['edge']['task_status'] == 'finished' and _tasks[task_id]['0']['task_status'] == 'finished' \
-            and _tasks[task_id]['1']['task_status'] == 'finished' and _tasks[task_id]['2']['task_status'] == 'finished' \
-            and _tasks[task_id]['3']['task_status'] == 'finished':
+    if _tasks[task_id]['edge']:
+        if _tasks[task_id]['edge']['task_status'] == 'finished' and _tasks[task_id]['0'][
+            'task_status'] == 'finished' \
+                and _tasks[task_id]['1']['task_status'] == 'finished' and _tasks[task_id]['2'][
+            'task_status'] == 'finished' \
+                and _tasks[task_id]['3']['task_status'] == 'finished':
+            _tasks[task_id]['task_status'] = 'finished'
+            _tasks[task_id]['task_end_time'] = (time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()))
+            with open('tasks.json', 'w') as f:
+                json.dump(_tasks, f)
+            logger.info(f"Finish task {task_id} is successful")
+            return {"task_finish": "success"}
+        # 如果所有节点都完成任务，则完成任务
+    elif all(_tasks[task_id][node_id]['task_status'] == 'finished' for node_id in _tasks[task_id]):
         _tasks[task_id]['task_status'] = 'finished'
         _tasks[task_id]['task_end_time'] = (time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()))
         with open('tasks.json', 'w') as f:
             json.dump(_tasks, f)
         logger.info(f"Finish task {task_id} is successful")
         return {"task_finish": "success"}
+
     else:
         return {"message": f"Task {task_id} node {node_id} is finished, waiting for other nodes to finish"}
 
