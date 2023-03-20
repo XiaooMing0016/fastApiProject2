@@ -54,7 +54,7 @@ async def init_task(task_type: str, destination_type: str, task_name: str, prior
     if destination_type == 'master':
         for i in range(4):
             try:
-                response = requests.request('GET', f"{_node_ip[i]}/task/init/{task_type_name}/{task_id}/{str(i)}/"
+                response = requests.request('GET', f"{_node_ip[str(i)]}/task/init/{task_type_name}/{task_id}/{str(i)}/"
                                                    f"{task_name}/{priority}/{count}")
                 if response.status_code == 200:
                     logger.info(
