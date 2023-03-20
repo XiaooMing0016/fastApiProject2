@@ -113,6 +113,11 @@ async def init_task(task_type: str, destination_type: str, task_name: str, prior
             "destination_type": destination_type, "status": "created"}
 
 
+@app.get("/task/process/{task_id}/{node_id}/{image_num}/{count}")
+async def task_process(request: Request, task_id: str, node_id: str, image_num: str, count: str):
+    return await task_process(request, task_id, node_id, image_num, str(len(node_id)), count)
+
+
 # 接受数据并处理
 @app.get("/task/process/{task_id}/{node_id}/{image_num}/{node_num}/{count}")
 async def task_process(request: Request, task_id: str, node_id: str, image_num: str, node_num: str, count: str):
