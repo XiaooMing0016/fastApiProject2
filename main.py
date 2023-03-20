@@ -176,7 +176,7 @@ async def stop_task(task_id: str):
         else:
             for i in range(4):
                 try:
-                    response = requests.request('GET', f"{_node_ip[i]}/task/end/{task_id}")
+                    response = requests.request('GET', f"{_node_ip[str(i)]}/task/end/{task_id}")
                     if response.status_code == 200:
                         _tasks[task_id][str(i)]['task_status'] = 'end'
                         _tasks[task_id][str(i)]['task_end_time'] = (
